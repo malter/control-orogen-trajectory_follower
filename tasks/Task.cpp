@@ -92,7 +92,9 @@ void Task::updateHook()
     base::Pose robotPose(robot2map);
 
     if (_trajectory.readNewest(trajectories, false) == RTT::NewData && !trajectories.empty()) {
-        trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose);
+        bool last = false;
+        if(trajectories.size() < 3) last = true;
+        trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
         _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
         trajectories.erase(trajectories.begin());
         //emit following once, to let the outside know we got the trajectory
@@ -114,7 +116,9 @@ void Task::updateHook()
     case TRAJECTORY_FINISHED:
         if(!trajectories.empty())
         {
-            trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose);
+            bool last = false;
+            if(trajectories.size() < 3) last = true;
+            trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
             _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
             trajectories.erase(trajectories.begin());
         }
