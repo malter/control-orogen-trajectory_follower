@@ -198,7 +198,7 @@ void Task::updateHook()
 
     FollowerStatus status = trajectoryFollower.traverseTrajectory(motionCommand, robotPose);
 
-    if (_enable_evasive_behavior.get()){
+    if (_enable_evasive_behavior.get() && status == TRAJECTORY_FOLLOWING){
         Motion2D copy = motionCommand;
         _dynamic_objects.readNewest(dynamic_objects,false);
         current_heading = robotPose.getYaw();
