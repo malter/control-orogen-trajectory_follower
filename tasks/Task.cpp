@@ -1,6 +1,7 @@
 /* Generated from orogen/lib/orogen/templates/tasks/Task.cpp */
 
 #include "Task.hpp"
+#include <rtt/transports/corba/TaskContextProxy.hpp>
 #include <base-logging/Logging.hpp>
 #include <random>
 
@@ -59,6 +60,12 @@ bool Task::configureHook()
 {
     if (! TaskBase::configureHook())
         return false;
+
+    planner_task  = RTT::corba::TaskContextProxy::Create("path_planner", false);
+    this->addPeer(planner_task);
+    isTraversable = planner_task->getOperation("isTraversable");   
+    turning_left = false;
+    turning_right = false; 
     return true;
 }
 bool Task::startHook()
@@ -72,6 +79,87 @@ bool Task::startHook()
         return false;
     return true;
 }
+
+void Task::getNextPose(const Motion2D& mc){
+
+    const double time_step_in_future = 0.5;
+
+    //new_heading = current_heading + (motionCommand.rotation * std::abs((previous_time-current_time).toSeconds()));
+    new_heading = current_heading + (motionCommand.rotation * time_step_in_future);
+
+    //where will I be after 1.2 seconds
+    double delta = motionCommand.translation * time_step_in_future;
+
+    new_position.x() = current_position.x() + (delta * cos(new_heading));
+    new_position.y() = current_position.y() + (delta * sin(new_heading));
+
+    std::cout << "Current Position" << current_position.transpose() << std::endl;
+    std::cout << "New Position" << new_position.transpose() << std::endl;
+
+}
+
+Eigen::Vector3d Task::getClosestObjectCentroid(std::vector<pointcloud_obstacle_detection::Box> dynamic_objects){
+
+    double distance = std::numeric_limits< double >::max();
+
+    int object_index{0};
+
+    for (int i{0}; i < dynamic_objects.size(); ++i){
+
+        Eigen::Vector3d object_in_robot_frame((dynamic_objects.at(i).x_min + dynamic_objects.at(i).x_max)/2,(dynamic_objects.at(i).y_min+dynamic_objects.at(i).y_max)/2,0);
+        Eigen::Vector3d object_in_world_frame = robot2map * object_in_robot_frame;   
+
+        double dist = std::abs((object_in_world_frame - robot2map.translation()).norm());
+
+        if (dist < distance){
+            distance = dist;
+            object_index = i;
+            std::cout << "Closest object is " << distance << " meters away." << std::endl; 
+        }          
+    }
+
+    pointcloud_obstacle_detection::Box closest_box = dynamic_objects.at(object_index);
+    Eigen::Vector3d object_in_robot_frame((closest_box.x_min + closest_box.x_max)/2,(closest_box.y_min+closest_box.y_max)/2,0);
+    return object_in_robot_frame;
+}
+
+void Task::turnLeft(Motion2D& mc){
+    //adapt the mc to turn left for evasive behavior
+    std::cout << "Turning Left " << std::endl;
+
+    if (turning_left == true){
+        mc = lastMotionCommand;
+        return;
+    }
+
+    if (mc.rotation < 0.01 && mc.rotation > -0.01){
+        mc.rotation = 0.2;            
+    }
+    else{
+        mc.rotation = std::abs(mc.rotation) + 0.5;
+    }
+
+    turning_left = true;
+}
+
+void Task::turnRight(Motion2D& mc){
+    //adapt the mc to turn left for evasive behavior
+    std::cout << "Turning Right " << std::endl;
+
+    if (turning_right== true){
+        mc = lastMotionCommand;
+        return;
+    }
+
+    if (mc.rotation < 0.01 && mc.rotation > -0.01){
+        mc.rotation = -0.2;    
+    }
+    else{
+       mc.rotation = -std::abs(mc.rotation) - 0.5;
+    }
+    turning_right = true;
+}
+
 void Task::updateHook()
 {
     TaskBase::updateHook();
@@ -80,8 +168,7 @@ void Task::updateHook()
     motionCommand.rotation    = 0;
     motionCommand.heading     = 0;
 
-    Eigen::Affine3d robot2map;
-    if(!_robot2map.get(base::Time::now(), robot2map, false))
+    if(!_robot2map.get(current_time, robot2map, false))
     {
         LOG_ERROR_S << "Could not get robot pose!" << std::endl;
         trajectoryFollower.removeTrajectory();
@@ -110,6 +197,35 @@ void Task::updateHook()
     }
 
     FollowerStatus status = trajectoryFollower.traverseTrajectory(motionCommand, robotPose);
+
+    if (_enable_evasive_behavior.get()){
+        Motion2D copy = motionCommand;
+        _dynamic_objects.readNewest(dynamic_objects,false);
+        current_heading = robotPose.getYaw();
+        current_position = robotPose.position.head<2>();
+        Eigen::Vector3d closest_object_in_robot_frame;
+        if (dynamic_objects.size() > 0){
+            closest_object_in_robot_frame = getClosestObjectCentroid(dynamic_objects);
+
+            if (closest_object_in_robot_frame.y() < 0.0 && closest_object_in_robot_frame.y() > -1.0){
+                turnLeft(copy);
+                turning_right = false;
+            }
+            else if (closest_object_in_robot_frame.y() >= 0.0 && closest_object_in_robot_frame.y() < 1.0){
+                turnRight(copy);
+                turning_left = false;
+            }
+            else{
+                turning_left = false;
+                turning_right = false;
+            }
+            getNextPose(copy);
+            Eigen::Vector3d future_position(new_position.x(), new_position.y(),0);          
+            if (isTraversable(future_position)){
+                motionCommand = copy;
+            }
+        }
+    }
 
     switch(status)
     {
@@ -167,6 +283,8 @@ void Task::updateHook()
         current_state = new_state;
         state(new_state);
     }
+
+    previous_time = current_time;
 }
 
 void Task::errorHook()
