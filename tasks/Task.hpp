@@ -7,6 +7,8 @@
 #include <trajectory_follower/TrajectoryFollower.hpp>
 #include <trajectory_follower/TrajectoryFollowerTypes.hpp>
 #include <trajectory_follower/Motion2D.hpp>
+#include <pointcloud_obstacle_detection/Box.h>
+#include <rtt/OperationCaller.hpp>
 
 namespace trajectory_follower{
 
@@ -34,9 +36,30 @@ namespace trajectory_follower{
         Motion2D lastMotionCommand;
         States new_state;
         States current_state;
+        double current_heading;
+        double new_heading;
+        Eigen::Vector2d current_position;
+        Eigen::Vector2d new_position;
+
+        base::Time previous_time;
+        base::Time current_time;
+
+        TaskContext* planner_task;
+        RTT::OperationCaller<bool(base::Vector3d)> isTraversable;
+
+        std::vector<pointcloud_obstacle_detection::Box> dynamic_objects;
+        Eigen::Affine3d robot2map;
 
         std::string printState(const States& state);
         bool isMotionCommandZero(const Motion2D& mc);
+
+        void getNextPose(const Motion2D& mc);
+        Eigen::Vector3d getClosestObjectCentroid(std::vector<pointcloud_obstacle_detection::Box> dynamic_objects);
+        void turnLeft(Motion2D& mc);
+        void turnRight(Motion2D& mc);
+
+        bool turning_left;
+        bool turning_right;
 
     public:
         /** TaskContext constructor for Task

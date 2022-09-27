@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <package>
   <depend package="control/trajectory_follower"/>
+  <depend package="perception/orogen/pointcloud_obstacle_detection" />
+  <depend package="planning/orogen/ugv_nav4d" />
   <depend package="base/orogen/types"/>
   <depend package="orogen"/>
   <depend package="drivers/orogen/transformer"/>
