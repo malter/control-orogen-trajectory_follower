@@ -93,8 +93,8 @@ void Task::getNextPose(const Motion2D& mc){
     new_position.x() = current_position.x() + (delta * cos(new_heading));
     new_position.y() = current_position.y() + (delta * sin(new_heading));
 
-    std::cout << "Current Position" << current_position.transpose() << std::endl;
-    std::cout << "New Position" << new_position.transpose() << std::endl;
+    LOG_DEBUG_S << "Current Position" << current_position.transpose();
+    LOG_DEBUG_S << "New Position" << new_position.transpose();
 
 }
 
@@ -114,7 +114,7 @@ Eigen::Vector3d Task::getClosestObjectCentroid(std::vector<pointcloud_obstacle_d
         if (dist < distance){
             distance = dist;
             object_index = i;
-            std::cout << "Closest object is " << distance << " meters away." << std::endl; 
+            LOG_DEBUG_S << "Closest object is " << distance << " meters away."; 
         }          
     }
 
@@ -125,7 +125,7 @@ Eigen::Vector3d Task::getClosestObjectCentroid(std::vector<pointcloud_obstacle_d
 
 void Task::turnLeft(Motion2D& mc){
     //adapt the mc to turn left for evasive behavior
-    std::cout << "Turning Left " << std::endl;
+    LOG_DEBUG_S << "Turning Left ";
 
     if (turning_left == true){
         mc = lastMotionCommand;
@@ -144,7 +144,7 @@ void Task::turnLeft(Motion2D& mc){
 
 void Task::turnRight(Motion2D& mc){
     //adapt the mc to turn left for evasive behavior
-    std::cout << "Turning Right " << std::endl;
+    LOG_DEBUG_S << "Turning Right ";
 
     if (turning_right== true){
         mc = lastMotionCommand;
@@ -170,7 +170,7 @@ void Task::updateHook()
 
     if(!_robot2map.get(current_time, robot2map, false))
     {
-        LOG_ERROR_S << "Could not get robot pose!" << std::endl;
+        LOG_ERROR_S << "Could not get robot pose!";
         trajectoryFollower.removeTrajectory();
         _motion_command.write(motionCommand.toBaseMotion2D());
         return;
