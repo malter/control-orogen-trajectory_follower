@@ -178,14 +178,24 @@ void Task::updateHook()
 
     base::Pose robotPose(robot2map);
 
-    if (_trajectory.readNewest(trajectories, false) == RTT::NewData && !trajectories.empty()) {
-        bool last = false;
-        if(trajectories.size() < 3) last = true;
-        trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
-        _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
-        trajectories.erase(trajectories.begin());
-        //emit following once, to let the outside know we got the trajectory
-        state(FOLLOWING_TRAJECTORY);
+    // in the current usage if we get a new set of trajectories means we planned a new path
+    // from the current pose and should skip the old set of trajectories.
+    //if (_trajectory.readNewest(trajectories, false) == RTT::NewData && !trajectories.empty()) {
+
+    if (_trajectory.readNewest(trajectories, false) == RTT::NewData) {
+        if(trajectories.empty()) {
+            _motion_command.write(motionCommand.toBaseMotion2D());
+            state(FINISHED_TRAJECTORIES);
+        }
+        else {
+            bool last = false;
+            if(trajectories.size() < 3) last = true;
+            trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
+            _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
+            trajectories.erase(trajectories.begin());
+            //emit following once, to let the outside know we got the trajectory
+            state(FOLLOWING_TRAJECTORY);
+        }
     }
     
     SubTrajectory subTrajectory;
