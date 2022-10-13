@@ -61,9 +61,12 @@ bool Task::configureHook()
     if (! TaskBase::configureHook())
         return false;
 
-    planner_task  = RTT::corba::TaskContextProxy::Create("path_planner", false);
-    this->addPeer(planner_task);
-    isTraversable = planner_task->getOperation("isTraversable");   
+    if (_enable_evasive_behavior.get())
+    {
+        planner_task  = RTT::corba::TaskContextProxy::Create("path_planner", false);
+        this->addPeer(planner_task);
+        isTraversable = planner_task->getOperation("isTraversable");
+    }
     turning_left = false;
     turning_right = false; 
     return true;
