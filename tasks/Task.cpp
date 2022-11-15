@@ -63,12 +63,24 @@ bool Task::configureHook()
 
     if (_enable_evasive_behavior.get())
     {
-        planner_task  = RTT::corba::TaskContextProxy::Create("path_planner", false);
+        LOG_INFO_S << "Evasive behavior is " << _enable_evasive_behavior.get();
+        if (_traversability_map_provider_task.get().empty()){
+            LOG_ERROR_S << "No task name provided for the traversability map provider!";
+            throw std::runtime_error("No task name provided for the traversability map provider!");
+        }
+
+        planner_task  = RTT::corba::TaskContextProxy::Create(_traversability_map_provider_task.get(), false);
+
+        if(!planner_task->ready()){
+            LOG_ERROR_S << "ERROR: " << _traversability_map_provider_task.get() << " is not ready!!";
+            throw std::runtime_error("ERROR: " + _traversability_map_provider_task.get() + " is not ready!!");
+        }
+
         this->addPeer(planner_task);
         isTraversable = planner_task->getOperation("isTraversable");
     }
     turning_left = false;
-    turning_right = false; 
+    turning_right = false;
     return true;
 }
 bool Task::startHook()
@@ -110,15 +122,15 @@ Eigen::Vector3d Task::getClosestObjectCentroid(std::vector<pointcloud_obstacle_d
     for (int i{0}; i < dynamic_objects.size(); ++i){
 
         Eigen::Vector3d object_in_robot_frame((dynamic_objects.at(i).x_min + dynamic_objects.at(i).x_max)/2,(dynamic_objects.at(i).y_min+dynamic_objects.at(i).y_max)/2,0);
-        Eigen::Vector3d object_in_world_frame = robot2map * object_in_robot_frame;   
+        Eigen::Vector3d object_in_world_frame = robot2map * object_in_robot_frame;
 
         double dist = std::abs((object_in_world_frame - robot2map.translation()).norm());
 
         if (dist < distance){
             distance = dist;
             object_index = i;
-            LOG_DEBUG_S << "Closest object is " << distance << " meters away."; 
-        }          
+            LOG_DEBUG_S << "Closest object is " << distance << " meters away.";
+        }
     }
 
     pointcloud_obstacle_detection::Box closest_box = dynamic_objects.at(object_index);
@@ -136,7 +148,7 @@ void Task::turnLeft(Motion2D& mc){
     }
 
     if (mc.rotation < 0.01 && mc.rotation > -0.01){
-        mc.rotation = 0.2;            
+        mc.rotation = 0.2;
     }
     else{
         mc.rotation = std::abs(mc.rotation) + 0.5;
@@ -155,7 +167,7 @@ void Task::turnRight(Motion2D& mc){
     }
 
     if (mc.rotation < 0.01 && mc.rotation > -0.01){
-        mc.rotation = -0.2;    
+        mc.rotation = -0.2;
     }
     else{
        mc.rotation = -std::abs(mc.rotation) - 0.5;
@@ -200,7 +212,7 @@ void Task::updateHook()
             state(FOLLOWING_TRAJECTORY);
         }
     }
-    
+
     SubTrajectory subTrajectory;
     if (_holonomic_trajectory.readNewest(subTrajectory, false) == RTT::NewData) {
         trajectoryFollower.setNewTrajectory(subTrajectory, robotPose);
@@ -233,7 +245,7 @@ void Task::updateHook()
                 turning_right = false;
             }
             getNextPose(copy);
-            Eigen::Vector3d future_position(new_position.x(), new_position.y(),0);          
+            Eigen::Vector3d future_position(new_position.x(), new_position.y(),0);
             if (isTraversable(future_position)){
                 motionCommand = copy;
             }
@@ -276,9 +288,9 @@ void Task::updateHook()
     default:
         std::runtime_error("Unknown TrajectoryFollower state");
     }
-    
+
     _follower_data.write(trajectoryFollower.getData());
-   
+
 
     if ( not ( isMotionCommandZero(lastMotionCommand) &&
                isMotionCommandZero(motionCommand)     &&
