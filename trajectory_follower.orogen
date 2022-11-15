@@ -22,9 +22,13 @@ task_context "Task" do
     property("send_zero_cmd_once", "bool", false).
             doc "Don't send zero motion_commands repetitively"
 
-    property("enable_evasive_behavior", "bool", false).      
+    #The task name which provides a traversabilitymap3d.
+    property "traversability_map_provider_task", "/std/string", ""
+
+    property("enable_evasive_behavior", "bool", false).
             doc "Don't do evasive behavior in case a obstacle is in the way"
-    input_port "dynamic_objects", "std::vector<pointcloud_obstacle_detection/Box>"            
+            
+    input_port "dynamic_objects", "std::vector<pointcloud_obstacle_detection/Box>"
 
     # Input ports
     input_port("trajectory", "std::vector<trajectory_follower/SubTrajectory>").
@@ -46,7 +50,7 @@ task_context "Task" do
 
     output_port("current_trajectory", "std::vector<trajectory_follower/SubTrajectory>").
         doc "Pose error calculated by NURBSCurve3D"
-    
+
     input_port("holonomic_trajectory", "trajectory_follower/SubTrajectory")
 
     # Runtime state for when trajectory finished or when actively following one
@@ -68,7 +72,7 @@ task_context "TurnVelocityToSteerAngleTask" do
 
     property("wheel_base", "double" ).
             doc "Wheel base of the vehicle"
-          
+
     property("max_steering_angle", "double", 0.523).
 	doc "Steering angle upper limit in radians"
 
@@ -87,7 +91,7 @@ end
 deployment "test_trajectory" do
     do_not_install
     trajectory_task = task("trajectory", "Task")
-    
+
     add_default_logger
     if !corba_enabled?
         browse trajectory_task
