@@ -255,16 +255,26 @@ void Task::updateHook()
     switch(status)
     {
     case TRAJECTORY_FINISHED:
-        if(!trajectories.empty())
+        //check if next spline is just a point
+        while(!trajectories.empty() && trajectories.front().posSpline.isSingleton())
+        {
+            LOG_ERROR_S << "Ignoring degenerate trajectory!" << std::endl;
+            trajectories.erase(trajectories.begin());
+        }
+        
+        // check if there is a next trajectory
+        if(trajectories.empty())
+        {
+            new_state = FINISHED_TRAJECTORIES;
+        }else
         {
             bool last = false;
             if(trajectories.size() < 3) last = true;
-            trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
+            trajectoryFollower.setNewTrajectory(SubTrajectory(trajectories.front()), robotPose, last);
             _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
             trajectories.erase(trajectories.begin());
+            new_state = FOLLOWING_TRAJECTORY;
         }
-        else
-            new_state = FINISHED_TRAJECTORIES;
         break;
     case TRAJECTORY_FOLLOWING:
         new_state = FOLLOWING_TRAJECTORY;
