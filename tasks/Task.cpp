@@ -270,10 +270,18 @@ void Task::updateHook()
         //check if next spline is just a point
         while(!trajectories.empty() && trajectories.front().posSpline.isSingleton())
         {
-            LOG_ERROR_S << "Ignoring degenerate trajectory!" << std::endl;
-            trajectories.erase(trajectories.begin());
+            if(trajectories.front().driveMode == DriveMode::ModeTurnOnTheSpot)
+            {
+                break;
+            }
+            else
+            {
+                LOG_ERROR_S << "Ignoring degenerate trajectory!" << std::endl;
+                trajectories.erase(trajectories.begin());
+            }
         }
         
+
         // check if there is a next trajectory
         if(trajectories.empty())
         {
