@@ -201,6 +201,7 @@ void Task::updateHook()
         if(trajectories.empty()) {
             _motion_command.write(motionCommand.toBaseMotion2D());
             state(FINISHED_TRAJECTORIES);
+            trajectoryFollower.removeTrajectory();
         }
         else {
             bool last = false;
