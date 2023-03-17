@@ -204,8 +204,19 @@ void Task::updateHook()
             trajectoryFollower.removeTrajectory();
         }
         else {
-            bool last = false;
-            if(trajectories.size() < 3) last = true;
+            bool last = true;
+            int count = 0;
+            for(auto tr: trajectories)
+            {
+                if(tr.driveMode == DriveMode::ModeAckermann)
+                {
+                    if(++count > 1)
+                    {
+                        last = false;
+                        break;
+                    }
+                }
+            }
             trajectoryFollower.setNewTrajectory(trajectories.front(), robotPose, last);
             _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
             trajectories.erase(trajectories.begin());
@@ -269,8 +280,19 @@ void Task::updateHook()
             new_state = FINISHED_TRAJECTORIES;
         }else
         {
-            bool last = false;
-            if(trajectories.size() < 3) last = true;
+            bool last = true;
+            int count = 0;
+            for(auto tr: trajectories)
+            {
+                if(tr.driveMode == DriveMode::ModeAckermann)
+                {
+                    if(++count > 1)
+                    {
+                        last = false;
+                        break;
+                    }
+                }
+            }
             trajectoryFollower.setNewTrajectory(SubTrajectory(trajectories.front()), robotPose, last);
             _current_trajectory.write(trajectoryFollower.getData().currentTrajectory);
             trajectories.erase(trajectories.begin());
