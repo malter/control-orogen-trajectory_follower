@@ -10,7 +10,7 @@ using_library "pointcloud_obstacle_detection"
 
 
 import_types_from "trajectory_follower/TrajectoryFollowerTypes.hpp"
-import_types_from "pointcloud_obstacle_detection/Box.h"
+import_types_from "pointcloud_obstacle_detection/Box.hpp"
 
 
 task_context "Task" do

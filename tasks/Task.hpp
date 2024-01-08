@@ -7,7 +7,7 @@
 #include <trajectory_follower/TrajectoryFollower.hpp>
 #include <trajectory_follower/TrajectoryFollowerTypes.hpp>
 #include <trajectory_follower/Motion2D.hpp>
-#include <pointcloud_obstacle_detection/Box.h>
+#include <pointcloud_obstacle_detection/Box.hpp>
 #include <rtt/OperationCaller.hpp>
 
 namespace trajectory_follower{
